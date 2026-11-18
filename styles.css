@@ -1,0 +1,12 @@
+/* Site-wide style tweaks. Keep this small. */
+
+/* Make the estimand / answer callouts stand out a little more. */
+.callout {
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+/* Comfortable reading width for prose-heavy posts. */
+main.content p {
+  line-height: 1.65;
+}

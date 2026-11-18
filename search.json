@@ -1,0 +1,16 @@
+[
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "Each week this blog asks a single question about the current NBA season and tries to answer it carefully.\nEvery post follows the same workflow:\n\nState the question and the quantity (the estimand) that would answer it.\nDraw the scientific model: what causes what.\nSimulate data from that model before touching real data.\nCheck the priors by simulating from them.\nFit the model to simulated data and confirm it recovers what we put in.\nFit the real data, check the computation, and check the fit against the data.\nAnswer the question with honest uncertainty, and say what could be wrong.\n\nThe approach follows Richard McElreath’s Statistical Rethinking and Gelman, Vehtari and McElreath’s Bayesian Workflow.\nEvery post is reproducible: the data it used is frozen as a dated snapshot in the post’s folder, and the code, models and package versions are all in the GitHub repository."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "One Question at a Time",
+    "section": "",
+    "text": "No matching items"
+  }
+]
