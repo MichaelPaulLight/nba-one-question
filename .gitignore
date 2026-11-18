@@ -1,0 +1,26 @@
+# R / RStudio
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+.Renviron
+
+# Quarto build output (published by CI). Do NOT ignore _freeze/: it holds
+# each post's computed results and must be committed.
+/.quarto/
+/_site/
+
+# Compiled Stan executables (cmdstanr writes them next to the .stan file)
+posts/**/stan/*
+!posts/**/stan/*.stan
+*.exe
+
+# Large intermediate files: keep only the dated snapshots a post reads
+posts/**/data/raw/
+posts/**/fits/
+
+# OS
+.DS_Store
+Thumbs.db
+
+**/*.quarto_ipynb

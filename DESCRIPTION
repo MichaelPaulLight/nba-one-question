@@ -1,0 +1,30 @@
+Type: project
+Package: nbaonequestion
+Title: One Question at a Time: Bayesian Answers to NBA Questions
+Version: 0.0.1
+Description: Source for a weekly blog that asks and answers one question about
+    the current NBA season using a Bayesian workflow. This file is not a
+    package; it lists the project's dependencies for renv (explicit snapshots).
+Depends:
+    R (>= 4.3)
+Imports:
+    bayesplot,
+    brms,
+    cmdstanr,
+    dagitty,
+    dplyr,
+    ggplot2,
+    here,
+    hoopR,
+    jsonlite,
+    knitr,
+    loo,
+    nanoparquet,
+    posterior,
+    rmarkdown,
+    rstan,
+    scales,
+    testthat,
+    tidyr,
+    withr
+Additional_repositories: https://stan-dev.r-universe.dev

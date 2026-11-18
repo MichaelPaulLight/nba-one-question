@@ -1,0 +1,31 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "One Question at a Time"
+  description: "Each week, one question about the current NBA season, answered with a Bayesian workflow."
+  site-url: https://michaelpaullight.github.io/nba-one-question/
+  repo-url: https://github.com/MichaelPaulLight/nba-one-question
+  repo-actions: [source, issue]
+  # Drafts render normally (so you can read them while writing) but are left
+  # out of the home page, RSS feed, search and sitemap.
+  draft-mode: unlinked
+  navbar:
+    right:
+      - about.qmd
+      - icon: github
+        href: https://github.com/MichaelPaulLight/nba-one-question
+      - icon: rss
+        href: index.xml
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
+    code-fold: show
+    code-tools: true
+    code-link: true
+    fig-width: 7
+    fig-height: 4.5

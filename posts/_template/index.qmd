@@ -1,0 +1,227 @@
+---
+title: "{{title}}"
+description: "The question in one sentence, as a reader would ask it."
+date: "{{date}}"
+categories: []
+draft: true          # remove when the post is ready to publish
+---
+
+```{r}
+#| label: setup
+#| code-fold: true
+library(dplyr)
+library(ggplot2)
+library(cmdstanr)
+library(posterior)
+library(bayesplot)
+
+# Shared helpers: snapshot(), check_fit(), theme_blog(), repro_info()
+for (f in list.files(here::here("R"), pattern = "\\.R$", full.names = TRUE)) source(f)
+
+theme_set(theme_blog())
+options(mc.cores = 4, brms.backend = "cmdstanr")
+set.seed({{seed}})
+
+AS_OF <- as.Date("{{date}}")   # data cutoff for this post
+USE_REAL_DATA <- FALSE         # flip to TRUE once the simulation steps work
+```
+
+::: {.callout-note collapse="true"}
+## How to use this template
+
+Each heading is one step of the workflow. Write the prose first, then the code.
+The worked example (team three-point shooting) runs end to end on simulated
+data, so the post renders before you've written anything. Replace it section
+by section. Delete this callout before publishing.
+
+Render just this post with `quarto render posts/<this-folder>/index.qmd`.
+:::
+
+## The question
+
+<!-- One paragraph. Why would a fan care? What would change their mind? -->
+
+## The estimand
+
+::: {.callout-important}
+## Estimand
+<!-- The single quantity that answers the question, precisely: which players
+or teams, which games, measured on what scale, and as of which date.
+e.g. "For each team, the probability a three-point attempt goes in, for
+games through AS_OF." -->
+:::
+
+## The scientific model
+
+<!-- What causes what? Draw it before writing any statistics. Which paths does
+the estimand need, and which ones would confound it? -->
+
+```{r}
+#| label: dag
+dag <- dagitty::dagitty("dag {
+  Skill -> Makes
+  Attempts -> Makes
+  Skill -> Attempts
+}")
+plot(dagitty::graphLayout(dag))
+```
+
+## Simulating from the generative model
+
+<!-- Write the scientific model as a simulation. If you can't simulate it, you
+don't understand it well enough to estimate it. -->
+
+```{r}
+#| label: simulate
+sim_season <- function(n_teams = 30, mu = qlogis(0.36), tau = 0.15,
+                       mean_attempts = 37 * 15) {
+  theta <- rnorm(n_teams, mu, tau)
+  attempts <- rpois(n_teams, mean_attempts)
+  tibble(
+    team = paste0("T", seq_len(n_teams)),
+    attempts = attempts,
+    makes = rbinom(n_teams, attempts, plogis(theta)),
+    p_true = plogis(theta)
+  )
+}
+
+sim <- sim_season()
+```
+
+## The statistical model
+
+<!-- The model in math, then in Stan. Say why each prior is what it is. -->
+
+$$
+\begin{aligned}
+\text{makes}_j &\sim \text{Binomial}(\text{attempts}_j,\ \text{logit}^{-1}(\theta_j)) \\
+\theta_j &= \mu + \tau z_j, \quad z_j \sim \text{Normal}(0, 1) \\
+\mu &\sim \text{Normal}(-0.5, 0.3) \\
+\tau &\sim \text{Exponential}(5)
+\end{aligned}
+$$
+
+```{r}
+#| label: compile
+mod <- cmdstan_model("stan/model.stan")
+mod$print()
+
+to_stan <- function(d, prior_only = 0) {
+  list(N = nrow(d), attempts = d$attempts, makes = d$makes,
+       prior_only = prior_only)
+}
+```
+
+## Prior predictive check
+
+<!-- Do the priors imply plausible basketball before seeing any data? -->
+
+```{r}
+#| label: prior-predictive
+prior <- mod$sample(to_stan(sim, prior_only = 1), seed = 1,
+                    chains = 4, refresh = 0)
+
+prior$draws("p", format = "draws_df") |>
+  as_tibble() |>
+  select(starts_with("p[")) |>
+  tidyr::pivot_longer(everything(), values_to = "p") |>
+  ggplot(aes(p)) +
+  geom_histogram(bins = 60) +
+  scale_x_continuous(labels = scales::percent) +
+  labs(x = "Team three-point % implied by the priors", y = NULL)
+```
+
+## Can the model recover what we simulated?
+
+<!-- Fit the simulated data. If the model can't recover known parameters,
+it can't be trusted with real ones. -->
+
+```{r}
+#| label: recovery
+fit_sim <- mod$sample(to_stan(sim), seed = 2, chains = 4, refresh = 0)
+check_fit(fit_sim, variables = c("mu", "tau", "p"))
+
+summarise_draws(fit_sim$draws("p"), "mean",
+                ~quantile(.x, c(0.05, 0.95))) |>
+  bind_cols(sim) |>
+  ggplot(aes(p_true, mean)) +
+  geom_abline(linetype = 2, colour = "grey50") +
+  geom_pointrange(aes(ymin = `5%`, ymax = `95%`)) +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = "True value (simulated)", y = "Posterior mean and 90% interval")
+```
+
+## The data
+
+<!-- Where it came from, what the cutoff is, what you had to clean, and
+anything odd. The snapshot is saved in this post's data/ folder the first time
+this runs and reused after that. Check column names with glimpse(). -->
+
+```{r}
+#| label: data
+#| eval: !expr USE_REAL_DATA
+team_box <- snapshot(
+  "team_box", as_of = AS_OF,
+  fetch = function(as_of) {
+    hoopR::load_nba_team_box(seasons = hoopR::most_recent_nba_season()) |>
+      filter(game_date <= as_of)
+  }
+)
+
+d <- team_box |>
+  group_by(team = team_display_name) |>
+  summarise(attempts = sum(three_point_field_goals_attempted),
+            makes = sum(three_point_field_goals_made))
+glimpse(d)
+```
+
+## Fitting the real data
+
+```{r}
+#| label: fit
+#| eval: !expr USE_REAL_DATA
+fit <- mod$sample(to_stan(d), seed = 3, chains = 4, refresh = 0)
+check_fit(fit, variables = c("mu", "tau", "p"))
+```
+
+## Posterior predictive check
+
+<!-- Does data simulated from the fitted model look like the real data?
+Where it doesn't is where the model is wrong. -->
+
+```{r}
+#| label: ppc
+#| eval: !expr USE_REAL_DATA
+ppc_intervals(
+  y = d$makes / d$attempts,
+  yrep = sweep(fit$draws("makes_rep", format = "draws_matrix"), 2,
+               d$attempts, "/")
+)
+```
+
+## The answer
+
+::: {.callout-tip}
+## Answer
+<!-- One or two sentences, with uncertainty, in plain language. -->
+:::
+
+```{r}
+#| label: answer
+#| eval: !expr USE_REAL_DATA
+# Compute the estimand from the posterior draws here.
+```
+
+## What could be wrong
+
+<!-- Assumptions you'd most like to relax, data you wish you had, and what the
+next version of the model would add. This is the start of next week's post. -->
+
+## Reproducibility {.appendix}
+
+```{r}
+#| label: repro
+#| code-fold: true
+str(repro_info())
+```

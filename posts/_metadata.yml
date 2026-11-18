@@ -1,0 +1,15 @@
+# Options here apply to every post in this folder.
+
+# Freeze computations. A post's code only runs when you render that post
+# explicitly (quarto render posts/<post>/index.qmd). Rendering the whole site,
+# locally or in CI, reuses the stored results in _freeze/, so Stan models are
+# never refit by accident and CI does not need R installed.
+# Commit _freeze/ along with the post.
+freeze: true
+
+author: "Michael Light"
+title-block-banner: true
+
+execute:
+  warning: true
+  message: false
